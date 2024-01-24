@@ -25,7 +25,7 @@ You're looking at the script, which essentially allows you to place an order usi
 3 - Check Order Details
 ```
 1. Use the first one if you want to place an order by hardcoding all products in `IdentifierList` parameter, specified in `order_body.json` file.
-2. If you'd rather place an order by providing `queryURL`, without hardcoding products, then use option 2. The script will search for products found in `queryURL` parameter and place an order for them. Once your `parallel_quota` (which is basically a limit for a number of products per one order) will be exhausted, and order will be processed, then the new order will be placed (with remaining products in `queryURL`), provided that you set `new_orders` parameter to `true` in `env_variables.json` file. New orders will be placed till you reach your monthly quota limit or all products will be ordered. If, on the other hand, you set `new_orders` to `false`, then you will create a single order where number of products in this order will be equal to given `parallel_quota` and remaining products in `queryURL` won't be ordered.
+2. If you'd rather place an order by providing `queryURL`, without hardcoding products, then use option 2. The script will search for products found in `queryURL` parameter and place an order for them. Once your `parallel_quota` (which is basically a limit for a number of products per one order) will be exhausted, and order will be processed, then the new order will be placed (with remaining products found in `queryURL`), provided that you set `new_orders` parameter to `true` in `query.json` file. New orders will be placed till you reach your monthly quota limit or all products will be ordered. If, on the other hand, you set `new_orders` to `false`, then you will create a single order where number of products in this order will be equal to given `parallel_quota` and remaining products in `queryURL` won't be ordered.
 3. Finally, you can check order details by selecting option 3. Just provide an identifier and you will see order details.
 
 ## Demo
@@ -70,7 +70,7 @@ In order to see logs, you can use `cat /tmp/ordering_script.log`.
 1. Install all necessary libraries from `requirements.txt` file by `pip install -r requirements.txt` in your terminal.
 2. Make sure to provide essential variables in `json` folder:
 - no matter what, you have to provide proper parameters in `keycloak_ordering.json` and `order_body.json`
-- if you'd like to place an order by providing a query, without hardcoding products, then you also have to fill `query.json`. If `queryURL` that you provided is `HDA`, then you also have to provide parameters in `keycloak_catalogue.json`
+- if you'd like to place an order by providing a query, without hardcoding products, then you also have to fill `query.json`. If `queryURL` that you provided is `HDA`, then you also have to put a list of `WorkflowOptions` into `order_body.json` and provide parameters in `keycloak_catalogue.json`.
 ### keycloak_catalogue.json/keycloak_ordering.json
 These variables that you're seeing down below are essential for keycloak authorization:
 ```
@@ -83,7 +83,7 @@ These variables that you're seeing down below are essential for keycloak authori
   *"host": ""
 }
 ```
-*host is required only in `keycloak_ordering.json`, should begin with `ordering` and end with `cloudferro.com` (please do not provide `https://` at the beginning). For security reasons, I won't provide any example.
+*`host` is required only in `keycloak_ordering.json` (please do not provide `https://` at the beginning). For security reasons, I won't provide any example.
 ### order_body.json
 `BatchOrder/OData.CSC.Order` endpoint takes following parameters in a body:
 ```
@@ -109,13 +109,82 @@ These variables that you're seeing down below are essential for keycloak authori
   "SendIntermediateNotifications": false
 }
 ```
-`Name` and `WorkflowName` are mandatory to create an order. `IdentifierList` is required if you'd like to use option `1 - Create Batch Order Using A Body` and hardcode all products in `IdentifierList`. If you'd rather use option `2 - Create Batch Order Using a Query`, then by all means, you can skip `IdentifierList` since the script will look for products found in a `queryURL` parameter (specified in `env_variables.json` file) and place an order for all of them. Some processors require some special parameters, so you also have to provide them. Script will give you a run-down and inform you which parameters are missing. Here's how order_body.json could possibly look like:
+`Name` and `WorkflowName` are mandatory to create an order. `IdentifierList` is required if you'd like to use option `1 - Create Batch Order Using A Body` and hardcode all products in `IdentifierList`. If you'd rather use option `2 - Create Batch Order Using a Query`, then by all means, you can skip `IdentifierList` since the script will look for products found in a `queryURL` parameter (specified in `query.json` file) and place an order for all of them. Some processors require some special parameters, so you also have to provide them. Script will give you a run-down and inform you which parameters are missing. Here's how order_body.json could possibly look like:
 ```
 {
     "WorkflowName": "sleep_processor",
     "Name": "order_name",
    "IdentifierList": ["S1A_IW_GRDH_1SDV_20231215T054205_20231215T054230_051661_063CFA_38C9.SAFE"]
 }
+```
+If you've provided HDA catalogue in `queryURL` parameter in `query.json` file, then you also have to put a list of these `WorkflowOptions` into `order_body.json`:
+```
+"WorkflowOptions": [
+        {
+            "Name": "source_password",
+            "Value": ""
+        },
+        {
+            "Name": "source_username",
+            "Value": ""
+        },
+        {
+            "Name": "source_realm",
+            "Value": ""
+        },
+        {
+            "Name": "source_server_url",
+            "Value": ""
+        },
+        {
+            "Name": "source_client_id",
+            "Value": ""
+        },
+        {
+            "Name": "source_client_secret",
+            "Value": ""
+        },
+        {
+            "Name": "output_s3_access_key",
+            "Value": ""
+        },
+        {
+            "Name": "output_s3_secret_key",
+            "Value": ""
+        },
+        {
+            "Name": "output_s3_bucket",
+            "Value": ""
+        },
+        {
+            "Name": "output_s3_endpoint_url",
+            "Value": ""
+        },
+        {
+            "Name": "output_s3_prefix",
+            "Value": ""
+        },
+        {
+            "Name": "notification_endpoint",
+            "Value": ""
+        },
+        {
+            "Name": "output_storage",
+            "Value": ""
+        },
+        {
+            "Name": "input_catalogue_type",
+            "Value": ""
+        },
+        {
+            "Name": "input_catalogue_collection",
+            "Value": ""
+        },
+        {
+            "Name": "input_catalogue_url",
+            "Value": ""
+        }
+    ]
 ```
 ### query.json
 If you'd like to create an order using a query, then you also have to provide some parameters:
