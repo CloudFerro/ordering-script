@@ -117,7 +117,7 @@ These variables that you're seeing down below are essential for keycloak authori
    "IdentifierList": ["S1A_IW_GRDH_1SDV_20231215T054205_20231215T054230_051661_063CFA_38C9.SAFE"]
 }
 ```
-If you've provided HDA catalogue in `queryURL` parameter in `query.json` file or you'd like your workflow to use `hda`, then you also have to put a list of these `WorkflowOptions` into `order_body.json`:
+If you'd like your workflow to use `hda`, then you also have to put a list of these `WorkflowOptions` into `order_body.json`:
 ```
 "WorkflowOptions": [
         {
@@ -182,6 +182,7 @@ If you've provided HDA catalogue in `queryURL` parameter in `query.json` file or
         }
     ]
 ```
+In case of `TEMPORARY` `output_storage`, it is recommended to ommit s3 parameters, namely: `s3_access_key`, `s3_secret_key`, `s3_bucket`, `s3_endpoint_url`, `s3_prefix`. If you won't do this, you may get validation error.
 ### query.json
 If you'd like to create an order using a query, then you also have to provide some parameters:
 ```
