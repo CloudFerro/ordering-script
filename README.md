@@ -71,7 +71,7 @@ In order to see logs, you can use `cat /tmp/ordering_script.log`.
 2. Make sure to provide essential variables in `json` folder:
 - no matter what, you have to provide proper parameters in `keycloak_ordering.json` and `order_body.json`
 - if you'd like to place an order by providing a query, without hardcoding products, then you also have to fill `query.json`. If `queryURL` that you provided is `HDA`, then you also have to put a list of `WorkflowOptions` into `order_body.json` and provide parameters in `keycloak_catalogue.json`.
-### keycloak_catalogue.json/keycloak_ordering.json
+### `keycloak_catalogue.json`/`keycloak_ordering.json`
 These variables that you're seeing down below are essential for keycloak authorization:
 ```
 {
@@ -80,11 +80,20 @@ These variables that you're seeing down below are essential for keycloak authori
   "password": "",
   "client_secret": "",
   "keycloak_address": ""
-  *"host": ""
+  *"host": "",
+  **"totp_code": ""
 }
 ```
 *`host` is required only in `keycloak_ordering.json` (please do not provide `https://` at the beginning). For security reasons, I won't provide any example.
-### order_body.json
+
+**If your account uses 2FA authentication, then you can also specify `totp_code`, which consists of 32 characters (or possibly 39 if you use space each time after 4 characters). This parameter might be useful for you if you'd like to use Creodias for ordering. You may be scratching your head right now and thinking how can you get this code? I'm going to assume that you're already an existing user of Creodias, but you don't know your TOTP secret code yet. The most straightforward way of going about this is to simply reset your code. All you have to do is navigate to the <a href="https://identity.cloudferro.com/auth/realms/Creodias-new/account/#/security/signingin">TOTP management console</a> and remove your existing secret key. Once you've removed your secret key, click on `Set up authenticator application`. You should be prompted with this first window down below. Click on `Unable to scan?`, save your secret key in a secure place and complete your form (ref. picture 2). Do not scan your QR code, because it uses a different secret code to the one presented in the `Unable to scan?` page. It's really important, because once you start using it, it will be the one that works for your account. If you'd like to learn more about how Creodias handles 2FA, you might find <a href="https://creodias.docs.cloudferro.com/en/latest/eodata/Use-Python-to-automate-generating-API-tokens-for-accessing-and-downloading-EODATA-when-2FA-is-enabled-on-Creodias.html">this</a> and <a href="https://creodias.docs.cloudferro.com/en/latest/gettingstarted/How-to-manage-TOTP-authentication-on-Creodias.html">this</a> useful.
+
+<div align="center">
+  <img src="https://creodias.docs.cloudferro.com/en/latest/_images/xxx_yyy_account_qr_code.png" />
+ <img src="https://creodias.docs.cloudferro.com/en/latest/_images/secret_code_otp.png" />
+</div>
+
+### `order_body.json`
 `BatchOrder/OData.CSC.Order` endpoint takes following parameters in a body:
 ```
 {
@@ -183,7 +192,7 @@ If you'd like your workflow to use `hda`, then you also have to put a list of th
     ]
 ```
 In case of `TEMPORARY` `output_storage`, it is recommended to ommit s3 parameters, namely: `s3_access_key`, `s3_secret_key`, `s3_bucket`, `s3_endpoint_url`, `s3_prefix`. If you won't do this, you may get validation error.
-### query.json
+### `query.json`
 If you'd like to create an order using a query, then you also have to provide some parameters:
 ```
 {
