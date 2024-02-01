@@ -3,6 +3,7 @@ import requests
 import datetime
 import os
 import urllib3
+import pyotp
 
 from typing import Any
 from time import sleep
@@ -18,17 +19,22 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 def get_keycloak_response(file: str) -> dict:
     """Gets response from sending a POST request to the given keycloak address."""
     variables = get_json_from_file(file)
+    totp = ""
+    if "totp_code" in variables:
+        totp = pyotp.TOTP(variables["totp_code"].replace(" ", "")).now() if variables["totp_code"] != "" else totp
     data = {
         "client_id": variables["client_id"],
         "username": variables["username"],
         "password": variables["password"],
         "grant_type": "password",
-        "client_secret": variables["client_secret"]
+        "client_secret": variables["client_secret"],
+        "totp": totp
     }
     try:
         r = requests.post(
             variables["keycloak_address"],
             data=data,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'}
         )
         r.raise_for_status()
     except Exception:
