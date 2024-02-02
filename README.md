@@ -70,7 +70,7 @@ In order to see logs, you can use `cat /tmp/ordering_script.log`.
 1. Install all necessary libraries from `requirements.txt` file by `pip install -r requirements.txt` in your terminal.
 2. Make sure to provide essential variables in `json` folder:
 - no matter what, you have to provide proper parameters in `keycloak_ordering.json` and `order_body.json`
-- if you'd like to place an order by providing a query, without hardcoding products, then you also have to fill `query.json`. If `queryURL` that you provided is `HDA`, then you also have to put a list of `WorkflowOptions` into `order_body.json` and provide parameters in `keycloak_catalogue.json`.
+- if you'd like to place an order by providing a query, without hardcoding products, then you also have to fill `query.json`. If `queryURL` that you provided is `HDA`, then you also have to put parameters into `keycloak_catalogue.json`, because they are required for hda authentication.
 ### `keycloak_catalogue.json`/`keycloak_ordering.json`
 These variables that you're seeing down below are essential for keycloak authorization:
 ```
