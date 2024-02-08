@@ -25,7 +25,7 @@ You're looking at the script, which essentially allows you to place an order usi
 3 - Check Order Details
 ```
 1. Use the first one if you want to place an order by hardcoding all products in `IdentifierList` parameter, specified in `order_body.json` file.
-2. If you'd rather place an order by providing `queryURL`, without hardcoding products, then use option 2. The script will search for products found in `queryURL` parameter and place an order for them. Once your `parallel_quota` (which is basically a limit for a number of products per one order) will be exhausted, and order will be processed, then the new order will be placed (with remaining products found in `queryURL`), provided that you set `new_orders` parameter to `true` in `query.json` file. New orders will be placed till you reach your monthly quota limit or all products will be ordered. If, on the other hand, you set `new_orders` to `false`, then you will create a single order where number of products in this order will be equal to given `parallel_quota` and remaining products in `queryURL` won't be ordered.
+2. If you'd rather place an order by providing `query_url`, without hardcoding products, then use option 2. The script will search for products found in `query_url` parameter and place an order for them. Once your `parallel_quota` (which is basically a limit for a number of products per one order) will be exhausted, and order will be processed, then the new order will be placed (with remaining products found in `query_url`), provided that you set `new_orders` parameter to `true` in `query_details.json` file. New orders will be placed till you reach your monthly quota limit or all products will be ordered. If, on the other hand, you set `new_orders` to `false`, then you will create a single order where number of products in this order will be equal to given `parallel_quota` and remaining products in `query_url` won't be ordered.
 3. Finally, you can check order details by selecting option 3. Just provide an identifier and you will see order details.
 
 ## Demo
@@ -68,9 +68,10 @@ In order to see logs, you can use `cat /tmp/ordering_script.log`.
 
 ## Prerequisites
 1. Install all necessary libraries from `requirements.txt` file by `pip install -r requirements.txt` in your terminal.
-2. Make sure to provide essential variables in `json` folder:
+2. Make sure to provide essential variables in `jsons` folder:
 - no matter what, you have to provide proper parameters in `keycloak_ordering.json` and `order_body.json`
-- if you'd like to place an order by providing a query, without hardcoding products, then you also have to fill `query.json`. If `queryURL` that you provided is `HDA`, then you also have to put parameters into `keycloak_catalogue.json`, because they are required for hda authentication.
+- if you'd like to place an order by providing a query, without hardcoding products, then you also have to fill `query_details.json`. If `query_url` that you provided is `HDA`, then you also have to put parameters into `keycloak_catalogue.json`, because they are required for hda authentication.
+- if you'd like to place an order by hardcoding all products in `order_body.json` file, then you also have to put proper values into `order_details.json`
 ### `keycloak_catalogue.json`/`keycloak_ordering.json`
 These variables that you're seeing down below are essential for keycloak authorization:
 ```
@@ -118,7 +119,7 @@ These variables that you're seeing down below are essential for keycloak authori
   "SendIntermediateNotifications": false
 }
 ```
-`Name` and `WorkflowName` are mandatory to create an order. `IdentifierList` is required if you'd like to use option `1 - Create Batch Order Using A Body` and hardcode all products in `IdentifierList`. If you'd rather use option `2 - Create Batch Order Using a Query`, then by all means, you can skip `IdentifierList` since the script will look for products found in a `queryURL` parameter (specified in `query.json` file) and place an order for all of them. Some processors require some special parameters, so you also have to provide them. Script will give you a run-down and inform you which parameters are missing. Here's how order_body.json could possibly look like:
+`Name` and `WorkflowName` are mandatory to create an order. `IdentifierList` is required if you'd like to use option `1 - Create Batch Order Using A Body` and hardcode all products in `IdentifierList`. If you'd rather use option `2 - Create Batch Order Using a Query`, then by all means, you can skip `IdentifierList` since the script will look for products found in a `query_url` parameter (specified in `query_details.json` file) and place an order for all of them. Some processors require some special parameters, so you also have to provide them. Script will give you a run-down and inform you which parameters are missing. Here's how `order_body.json` could possibly look like:
 ```
 {
     "WorkflowName": "sleep_processor",
@@ -192,25 +193,25 @@ If you'd like your workflow to use `hda`, then you also have to put a list of th
     ]
 ```
 In case of `TEMPORARY` `output_storage`, it is recommended to ommit s3 parameters, namely: `s3_access_key`, `s3_secret_key`, `s3_bucket`, `s3_endpoint_url`, `s3_prefix`. If you won't do this, you may get validation error.
-### `query.json`
-If you'd like to create an order using a query, then you also have to provide some parameters:
+### `query_details.json`
+If you'd like to create an order using a query (option 2, aka `create-order-with-query`), then you also have to provide some parameters:
 ```
 {
     "parallel_quota": 0,
-    "queryURL": "string",
+    "query_url": "string",
     "new_orders": true
 }
 ```
 A few words about them:
 - `parallel_quota` - limit for a number of products per one order
-- `queryURL` - query to catalogue (datahub/HDA), can be generated from `explore.creodias.eu`
+- `query_url` - query to catalogue (datahub/HDA), can be generated from `explore.creodias.eu`
 - `new_orders` - when set to true, new order will be placed with new products once the previous one was processed
 
 Here's how it could possibly look like if you want to use `datahub` as a catalogue:
 ```
 {
     "parallel_quota": 5,
-    "queryURL": "https://datahub.creodias.eu/odata/v1/Products?$filter=((ContentDate/Start%20ge%202023-12-28T00:00:00.000Z%20and%20ContentDate/Start%20le%202023-12-28T23:59:59.999Z)%20and%20(Online%20eq%20true)%20and%20(((((Collection/Name%20eq%20%27SENTINEL-1%27)%20and%20(((Attributes/OData.CSC.StringAttribute/any(i0:i0/Name%20eq%20%27productType%27%20and%20i0/Value%20eq%20%27SLC%27))))%20and%20(((Attributes/OData.CSC.StringAttribute/any(i0:i0/Name%20eq%20%27operationalMode%27%20and%20i0/Value%20eq%20%27WV%27)))))))))&$expand=Attributes&$expand=Assets&$orderby=ContentDate/Start%20asc&$top=20",
+    "query_url": "https://datahub.creodias.eu/odata/v1/Products?$filter=((ContentDate/Start%20ge%202023-12-28T00:00:00.000Z%20and%20ContentDate/Start%20le%202023-12-28T23:59:59.999Z)%20and%20(Online%20eq%20true)%20and%20(((((Collection/Name%20eq%20%27SENTINEL-1%27)%20and%20(((Attributes/OData.CSC.StringAttribute/any(i0:i0/Name%20eq%20%27productType%27%20and%20i0/Value%20eq%20%27SLC%27))))%20and%20(((Attributes/OData.CSC.StringAttribute/any(i0:i0/Name%20eq%20%27operationalMode%27%20and%20i0/Value%20eq%20%27WV%27)))))))))&$expand=Attributes&$expand=Assets&$orderby=ContentDate/Start%20asc&$top=20",
     "new_orders": true
 }
 ```
@@ -218,17 +219,27 @@ And here's yet another example, but this time around for `hda` as a catalogue:
 ```
 {
     "parallel_quota": 5,
-    "queryURL": "https://hda.data.destination-earth.eu/stac/search?limit=10&collections=EO.ESA.DAT.SENTINEL-2.MSI.L1C",
+    "query_url": "https://hda.data.destination-earth.eu/stac/search?limit=10&collections=EO.ESA.DAT.SENTINEL-2.MSI.L1C",
     "new_orders": true
 }
 ```
-### How to generate `queryURL`
+### How to generate `query_url`
 You may ask yourself, how could you generate a query? Go to `explore.creodias.eu`, filter products however you wish and then click on `Copy query` right below `Search` button.
 <div align="center">
   <img src="imgs/query.gif" alt="drawing" width="500"/>
 </div>
 
 Please note that you will get query to `datahub` catalogue by following these instructions. Unfortunately, there's no option to generate a query to `stac`, so you have to prepare url by yourself. I recommend going to `https://hda.data.destination-earth.eu/docs/` for more details.
+
+### `order_details.json`
+If you'd like to create an order by hardcoding all products in `IdentifierList` parameter in `order_body.json` (option 1, aka `create-order-with-body`), then you have to specify these parameters' values in `order_details.json`:
+```
+{
+    "parallel_quota": 0,
+    "new_orders": true
+}
+```
+Just like mentioned earlier, `parallel_quota` is a limit for number of products per one order and `new_orders` parameter determines whether new order will be placed with new products once the previous one was processed.
 
 ## Contributions
 Contributions are welcomed. Just create a new branch and submit pull request with extensive description of changes.
