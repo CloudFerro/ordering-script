@@ -1,8 +1,6 @@
 import json
 import os
-
 from typing import Final
-
 
 PWD: Final = os.path.dirname(os.path.realpath(__file__))
 
