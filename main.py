@@ -1,6 +1,8 @@
-from utils import cls, create_batch_order_with_body, create_batch_order_with_query, check_order_details
-from art import logo
 import click
+
+from art import logo
+from utils import (check_order_details, cls, create_batch_order_with_body,
+                   create_batch_order_with_query)
 
 
 @click.group()
@@ -17,7 +19,8 @@ def gui():
     while True:
         choice = input(
             "\nPlease choose one of the following:\n1 - Create Batch Order Using A Body\n2 - Create Batch Order Using "
-            "A Query\n3 - Check Order Details\n4 - Exit\n")
+            "A Query\n3 - Check Order Details\n4 - Exit\n"
+        )
         cls()
         match choice:
             case "1":
@@ -27,11 +30,11 @@ def gui():
             case "3":
                 while True:
                     try:
-                        order_id = int(input('Please provide order id : '))
+                        order_id = int(input("Please provide order id : "))
                         check_order_details(order_id)
                         break
                     except ValueError:
-                        print('You entered a non-integer value, please try again.')
+                        print("You entered a non-integer value, please try again.")
                         continue
             case "4":
                 break
@@ -44,14 +47,14 @@ def create_order_with_body():
 
 
 @cli.command()
-@click.option('--hours', help="Specify hour mark to look back for products")
+@click.option("--hours", help="Specify hour mark to look back for products")
 def create_order_with_query(hours: str):
     """Creates BatchOrder Using Provided By User Query."""
     if hours:
         try:
             hours = int(hours)
         except ValueError:
-            print('You entered a non-integer value, please try again.')
+            print("You entered a non-integer value, please try again.")
         else:
             create_batch_order_with_query(hours)
     else:
@@ -60,5 +63,5 @@ def create_order_with_query(hours: str):
 
 cli = click.CommandCollection(sources=[cli])
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

@@ -1,16 +1,17 @@
-import json
-import urllib.parse
-import requests
 import datetime
+import json
 import os
-import urllib3
-
-from typing import Final
+import urllib.parse
 from time import sleep
+from typing import Final
+
+import requests
+import urllib3
 from retry import retry
+
 from auth import KeycloakToken, generate_headers
-from json_getter import PWD, get_keycloak_ordering, get_keycloak_catalogue, get_order_details, get_query_details, \
-    get_order_body
+from json_getter import (PWD, get_keycloak_catalogue, get_keycloak_ordering,
+                         get_order_body, get_order_details, get_query_details)
 
 KEYCLOAK_ORDERING_JSON: Final = get_keycloak_ordering()
 KEYCLOAK_CATALOGUE_JSON: Final = get_keycloak_catalogue()
@@ -26,7 +27,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def cls() -> None:
     """Clears console."""
-    os.system('cls' if os.name == 'nt' else 'clear')
+    os.system("cls" if os.name == "nt" else "clear")
 
 
 def generate_order_body_from_query(order_body: json, identifiers: list) -> json:
@@ -37,22 +38,33 @@ def generate_order_body_from_query(order_body: json, identifiers: list) -> json:
 
 
 @retry(tries=5, delay=5)
-def send_post_request_to_batch_order_and_validate_response(order_body: dict) -> requests.Response:
+def send_post_request_to_batch_order_and_validate_response(
+    order_body: dict,
+) -> requests.Response:
     """Creates new BatchOrder."""
     print("Posting order")
-    response = requests.post(f"https://{KEYCLOAK_ORDERING_JSON['host']}/odata/v1/BatchOrder/OData.CSC.Order",
-                             json=order_body,
-                             headers=generate_headers(ordering_keycloak, KEYCLOAK_ORDERING_JSON),
-                             verify=False)
-    assert response.status_code == 201, print(
-        f"Order hasn't been created successfully. Received response: \n{response.json()}\nWrong status code - "
-        f"{response.status_code}, expected 201. Sending "
-        f"another request with: {order_body}") if response.status_code < 500 else print(
-        f"Order hasn't been created successfully. Wrong status code - {response.status_code}, expected 201. Sending "
-        f"another request with: {order_body}")
+    response = requests.post(
+        f"https://{KEYCLOAK_ORDERING_JSON['host']}/odata/v1/BatchOrder/OData.CSC.Order",
+        json=order_body,
+        headers=generate_headers(ordering_keycloak, KEYCLOAK_ORDERING_JSON),
+        verify=False,
+    )
+    assert response.status_code == 201, (
+        print(
+            f"Order hasn't been created successfully. Received response: \n{response.json()}\nWrong status code - "
+            f"{response.status_code}, expected 201. Sending "
+            f"another request with: {order_body}"
+        )
+        if response.status_code < 500
+        else print(
+            f"Order hasn't been created successfully. Wrong status code - {response.status_code}, expected 201. Sending "
+            f"another request with: {order_body}"
+        )
+    )
     print(
         f"Order has been created successfully. Received status code: {response.status_code}. Received "
-        f"response:\n{response.json()}.\nOrder id: {response.json()['value']['Id']}")
+        f"response:\n{response.json()}.\nOrder id: {response.json()['value']['Id']}"
+    )
     return response
 
 
@@ -66,9 +78,14 @@ def create_batch_order_with_body() -> None:
             identifiers.append(product)
             products_ordered += 1
             print(f"Loaded {identifiers[-1]} to a list of products")
-        if len(identifiers) == ORDER_DETAILS_JSON["parallel_quota"] or len(products) == products_ordered:
+        if (
+            len(identifiers) == ORDER_DETAILS_JSON["parallel_quota"]
+            or len(products) == products_ordered
+        ):
             order_body = generate_order_body_from_query(ORDER_BODY_JSON, identifiers)
-            response = send_post_request_to_batch_order_and_validate_response(order_body)
+            response = send_post_request_to_batch_order_and_validate_response(
+                order_body
+            )
             if "value" in response.json():
                 wait_for_order_to_be_processed(response.json()["value"]["Id"])
                 identifiers.clear()
@@ -85,11 +102,19 @@ def wait_for_order_to_be_processed(identifier: int) -> None:
     while True:
         response = requests.get(
             f"https://{KEYCLOAK_ORDERING_JSON['host']}/odata/v1/BatchOrder({identifier})",
-            headers=generate_headers(ordering_keycloak, KEYCLOAK_ORDERING_JSON), verify=False)
+            headers=generate_headers(ordering_keycloak, KEYCLOAK_ORDERING_JSON),
+            verify=False,
+        )
         assert response.status_code == 200, print(
-            f"Received status code {response.status_code}. Sending another request")
-        if response.json()["value"]["Status"] != "queued" and response.json()["value"]["Status"] != "in_progress":
-            print(f"Order has been processed. Status: {response.json()['value']['Status']}")
+            f"Received status code {response.status_code}. Sending another request"
+        )
+        if (
+            response.json()["value"]["Status"] != "queued"
+            and response.json()["value"]["Status"] != "in_progress"
+        ):
+            print(
+                f"Order has been processed. Status: {response.json()['value']['Status']}"
+            )
             break
         sleep(30)
 
@@ -97,11 +122,17 @@ def wait_for_order_to_be_processed(identifier: int) -> None:
 @retry(tries=5, delay=5)
 def get_response_from_next_link(next_link: str) -> dict:
     """Gets response from sending a GET request to the given next link."""
-    response = requests.get(next_link, headers=generate_headers(catalogue_keycloak,
-                                                                KEYCLOAK_CATALOGUE_JSON)) if "/stac/" in next_link \
-        else requests.get(
-        next_link)
-    assert response.status_code == 200, print(f"Received status code {response.status_code}. Sending another request.")
+    response = (
+        requests.get(
+            next_link,
+            headers=generate_headers(catalogue_keycloak, KEYCLOAK_CATALOGUE_JSON),
+        )
+        if "/stac/" in next_link
+        else requests.get(next_link)
+    )
+    assert response.status_code == 200, print(
+        f"Received status code {response.status_code}. Sending another request."
+    )
     return response.json()
 
 
@@ -112,75 +143,127 @@ def create_batch_order_with_query(hours: int | None = None) -> None:
         modify_query_by_given_hour_mark(hours)
 
     print("Getting response from the given query_url")
-    response = requests.get(f"{QUERY_DETAILS_JSON['query_url']}&$count=true") if "/stac/" not in QUERY_DETAILS_JSON[
-        'query_url'] else requests.get(QUERY_DETAILS_JSON['query_url'],
-                                       headers=generate_headers(catalogue_keycloak, KEYCLOAK_CATALOGUE_JSON))
+    response = (
+        requests.get(f"{QUERY_DETAILS_JSON['query_url']}&$count=true")
+        if "/stac/" not in QUERY_DETAILS_JSON["query_url"]
+        else requests.get(
+            QUERY_DETAILS_JSON["query_url"],
+            headers=generate_headers(catalogue_keycloak, KEYCLOAK_CATALOGUE_JSON),
+        )
+    )
     identifiers = []
 
-    assert response.status_code == 200, print(f"Received status code {response.status_code}. Sending another request.")
+    assert response.status_code == 200, print(
+        f"Received status code {response.status_code}. Sending another request."
+    )
 
     if QUERY_DETAILS_JSON["new_orders"]:
-        create_batch_order_with_query_new_orders(QUERY_DETAILS_JSON, response.json(), identifiers)
+        create_batch_order_with_query_new_orders(
+            QUERY_DETAILS_JSON, response.json(), identifiers
+        )
     else:
-        create_batch_order_with_query_no_new_orders(QUERY_DETAILS_JSON, response.json(), identifiers)
+        create_batch_order_with_query_no_new_orders(
+            QUERY_DETAILS_JSON, response.json(), identifiers
+        )
 
 
-def create_batch_order_with_query_no_new_orders(variables: json, response: json, identifiers: list) -> None:
+def create_batch_order_with_query_no_new_orders(
+    variables: json, response: json, identifiers: list
+) -> None:
     """Option 2 - Creates new BatchOrder with a given query_url, without waiting for order to be processed."""
     while response:
         products = response["value"] if "value" in response else response["features"]
-        products_count = response["@odata.count"] if "@odata.count" in response else response["numberMatched"]
+        products_count = (
+            response["@odata.count"]
+            if "@odata.count" in response
+            else response["numberMatched"]
+        )
         total_items = 0
         for product in products:
             if len(identifiers) < variables["parallel_quota"]:
-                identifiers.append(product["Name"]) if "Name" in product else identifiers.append(product["id"])
+                (
+                    identifiers.append(product["Name"])
+                    if "Name" in product
+                    else identifiers.append(product["id"])
+                )
                 total_items += 1
                 print(f"Loaded {identifiers[-1]} to a list of products")
-            if len(identifiers) == variables["parallel_quota"] or products_count == total_items:
-                order_body = generate_order_body_from_query(ORDER_BODY_JSON, identifiers)
+            if (
+                len(identifiers) == variables["parallel_quota"]
+                or products_count == total_items
+            ):
+                order_body = generate_order_body_from_query(
+                    ORDER_BODY_JSON, identifiers
+                )
                 send_post_request_to_batch_order_and_validate_response(order_body)
                 break
 
-        if "@odata.nextLink" in response and len(identifiers) < variables["parallel_quota"]:
+        if (
+            "@odata.nextLink" in response
+            and len(identifiers) < variables["parallel_quota"]
+        ):
             print(
                 f"All products have been loaded to a list. Going to another link for more products: "
-                f"{response['@odata.nextLink']}")
+                f"{response['@odata.nextLink']}"
+            )
             response = get_response_from_next_link(response["@odata.nextLink"])
         elif "links" in response and len(identifiers) < variables["parallel_quota"]:
             for link in response["links"]:
                 if link["rel"] == "next":
                     print(
                         f"All products have been loaded to a list. Going to another link for more products: "
-                        f"{link['href']}")
+                        f"{link['href']}"
+                    )
                     response = get_response_from_next_link(link["href"])
         else:
             break
 
 
-def create_batch_order_with_query_new_orders(variables: json, response: json, identifiers: list) -> None:
+def create_batch_order_with_query_new_orders(
+    variables: json, response: json, identifiers: list
+) -> None:
     """Option 2 - Creates new BatchOrder with a given query_url, with waiting for order to be processed."""
-    products_count = response["@odata.count"] if "@odata.count" in response else response["numberMatched"]
+    products_count = (
+        response["@odata.count"]
+        if "@odata.count" in response
+        else response["numberMatched"]
+    )
     total_items = 0
     while response:
         products = response["value"] if "value" in response else response["features"]
         for product in products:
             if len(identifiers) < variables["parallel_quota"]:
-                identifiers.append(product["Name"]) if "Name" in product else identifiers.append(product["id"])
+                (
+                    identifiers.append(product["Name"])
+                    if "Name" in product
+                    else identifiers.append(product["id"])
+                )
                 total_items += 1
                 print(f"Loaded {identifiers[-1]} to a list of products")
-            if len(identifiers) == variables["parallel_quota"] or products_count == total_items:
-                order_body = generate_order_body_from_query(ORDER_BODY_JSON, identifiers)
-                post_response = send_post_request_to_batch_order_and_validate_response(order_body)
+            if (
+                len(identifiers) == variables["parallel_quota"]
+                or products_count == total_items
+            ):
+                order_body = generate_order_body_from_query(
+                    ORDER_BODY_JSON, identifiers
+                )
+                post_response = send_post_request_to_batch_order_and_validate_response(
+                    order_body
+                )
                 if "value" in post_response.json():
                     wait_for_order_to_be_processed(post_response.json()["value"]["Id"])
                     identifiers.clear()
                 else:
                     break
 
-        if "@odata.nextLink" in response and len(identifiers) < variables["parallel_quota"]:
+        if (
+            "@odata.nextLink" in response
+            and len(identifiers) < variables["parallel_quota"]
+        ):
             print(
                 f"All products have been loaded to a list. Going to another link for more products: "
-                f"{response['@odata.nextLink']}")
+                f"{response['@odata.nextLink']}"
+            )
             response = get_response_from_next_link(response["@odata.nextLink"])
         elif "links" in response and len(identifiers) < variables["parallel_quota"]:
             link_counter = 0
@@ -189,7 +272,8 @@ def create_batch_order_with_query_new_orders(variables: json, response: json, id
                 if link["rel"] == "next":
                     print(
                         f"All products have been loaded to a list. Going to another link for more products: "
-                        f"{link['href']}")
+                        f"{link['href']}"
+                    )
                     response = get_response_from_next_link(link["href"])
                 elif link_counter == len(response["links"]):
                     break
@@ -234,10 +318,14 @@ def modify_query_by_given_hour_mark(hours: int) -> None:
             query.update(params)
             query_url = url_parts._replace(query=urllib.parse.urlencode(query)).geturl()
         else:
-            res = get_date_from_query(query_url, "ContentDate/Start%20le%2", ")%20and%20(Online")
+            res = get_date_from_query(
+                query_url, "ContentDate/Start%20le%2", ")%20and%20(Online"
+            )
             query_url = query_url.replace(res, current_date)
 
-            res2 = get_date_from_query(query_url, "ContentDate/Start%20ge%2", "%20and%20ContentDate")
+            res2 = get_date_from_query(
+                query_url, "ContentDate/Start%20ge%2", "%20and%20ContentDate"
+            )
             query_url = query_url.replace(res2, earlier_date)
 
         data["query_url"] = query_url
@@ -248,7 +336,9 @@ def modify_query_by_given_hour_mark(hours: int) -> None:
 
 def check_order_details(order_id: int) -> None:
     """Option 3 - Outputs json from BatchOrder(order_id)"""
-    response = requests.get(f"https://{KEYCLOAK_ORDERING_JSON['host']}/odata/v1/BatchOrder({order_id})",
-                            headers=generate_headers(ordering_keycloak, KEYCLOAK_ORDERING_JSON),
-                            verify=False)
+    response = requests.get(
+        f"https://{KEYCLOAK_ORDERING_JSON['host']}/odata/v1/BatchOrder({order_id})",
+        headers=generate_headers(ordering_keycloak, KEYCLOAK_ORDERING_JSON),
+        verify=False,
+    )
     print(response.json())
