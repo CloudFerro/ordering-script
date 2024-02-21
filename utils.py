@@ -17,7 +17,6 @@ KEYCLOAK_ORDERING_JSON: Final = get_keycloak_ordering()
 KEYCLOAK_CATALOGUE_JSON: Final = get_keycloak_catalogue()
 ORDER_BODY_JSON: Final = get_order_body()
 ORDER_DETAILS_JSON: Final = get_order_details()
-QUERY_DETAILS_JSON: Final = get_query_details()
 
 ordering_keycloak = KeycloakToken()
 catalogue_keycloak = KeycloakToken()
@@ -142,28 +141,31 @@ def create_batch_order_with_query(hours: int | None = None) -> None:
     if hours:
         modify_query_by_given_hour_mark(hours)
 
+    query_details_json = get_query_details()
+
     print("Getting response from the given query_url")
     response = (
-        requests.get(f"{QUERY_DETAILS_JSON['query_url']}&$count=true")
-        if "/stac/" not in QUERY_DETAILS_JSON["query_url"]
+        requests.get(f"{query_details_json['query_url']}&$count=true")
+        if "/stac/" not in query_details_json["query_url"]
         else requests.get(
-            QUERY_DETAILS_JSON["query_url"],
+            query_details_json["query_url"],
             headers=generate_headers(catalogue_keycloak, KEYCLOAK_CATALOGUE_JSON),
         )
     )
+
     identifiers = []
 
     assert response.status_code == 200, print(
         f"Received status code {response.status_code}. Sending another request."
     )
 
-    if QUERY_DETAILS_JSON["new_orders"]:
+    if query_details_json["new_orders"]:
         create_batch_order_with_query_new_orders(
-            QUERY_DETAILS_JSON, response.json(), identifiers
+            query_details_json, response.json(), identifiers
         )
     else:
         create_batch_order_with_query_no_new_orders(
-            QUERY_DETAILS_JSON, response.json(), identifiers
+            query_details_json, response.json(), identifiers
         )
 
 
@@ -291,7 +293,7 @@ def add_timezone_chars_to_date(date: str) -> str:
 def get_date_from_query(query_url: str, sub1: str, sub2: str) -> str:
     """Extracts date from query."""
     idx1 = query_url.index(sub1)
-    idx2 = query_url.index(sub2)
+    idx2 = query_url.find(sub2, idx1)
 
     res = ""
     for idx in range(idx1 + len(sub1) + 1, idx2):
@@ -318,15 +320,47 @@ def modify_query_by_given_hour_mark(hours: int) -> None:
             query.update(params)
             query_url = url_parts._replace(query=urllib.parse.urlencode(query)).geturl()
         else:
-            res = get_date_from_query(
-                query_url, "ContentDate/Start%20le%2", ")%20and%20(Online"
-            )
-            query_url = query_url.replace(res, current_date)
+            if "ContentDate/Start%20ge" in query_url:
+                if "ContentDate/Start%20le" not in query_url:
+                    query_url = query_url.replace(
+                        "ContentDate/Start%20ge%20"
+                        + get_date_from_query(
+                            query_url, "ContentDate/Start%20ge%2", ")%20and%20"
+                        ),
+                        "ContentDate/Start%20ge%20"
+                        + f"{earlier_date}%20and%20ContentDate/Start%20le%20{current_date}",
+                    )
+                else:
+                    query_url = query_url.replace(
+                        get_date_from_query(
+                            query_url, "ContentDate/Start%20le%2", ")%20and%20"
+                        ),
+                        current_date,
+                    )
 
-            res2 = get_date_from_query(
-                query_url, "ContentDate/Start%20ge%2", "%20and%20ContentDate"
-            )
-            query_url = query_url.replace(res2, earlier_date)
+                    query_url = query_url.replace(
+                        get_date_from_query(
+                            query_url,
+                            "ContentDate/Start%20ge%2",
+                            "%20and%20ContentDate",
+                        ),
+                        earlier_date,
+                    )
+            elif "ContentDate/Start%20le" in query_url:
+                query_url = query_url.replace(
+                    "ContentDate/Start%20le%20"
+                    + get_date_from_query(
+                        query_url, "ContentDate/Start%20le%2", ")%20and%20"
+                    ),
+                    "ContentDate/Start%20ge%20"
+                    + f"{earlier_date}%20and%20ContentDate/Start%20le%20{current_date}",
+                )
+            else:
+                query_url = query_url.replace(
+                    "filter=",
+                    "filter=" + f"(ContentDate/Start%20ge%20"
+                    f"{earlier_date}%20and%20ContentDate/Start%20le%20{current_date})%20and%20",
+                )
 
         data["query_url"] = query_url
         jsonFile.seek(0)
