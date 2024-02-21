@@ -1,5 +1,5 @@
 {
   "parallel_quota": 5,
-  "queryURL": "",
+  "query_url": "",
   "new_orders": true
 }
