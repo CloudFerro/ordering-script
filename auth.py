@@ -64,7 +64,7 @@ def generate_headers(keycloak: KeycloakToken, json_data: json) -> dict:
 
     if "host" in json_data:
         headers = {
-            "Authorization": f"access_token {keycloak.token}",
+            "Authorization": f"Bearer {keycloak.token}",
             "Content-Type": "application/json",
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate, br",
