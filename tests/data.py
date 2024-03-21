@@ -1,9 +1,9 @@
 ORDER_CREATED = {
     "@odata.context": "#metadata/Odata.CSC.BatchOrder",
     "value": {
-        "Name": "data_download_datahub_order",
+        "Name": "data_harvest_datahub_order",
         "Priority": 1,
-        "WorkflowName": "data-download",
+        "WorkflowName": "data-harvest",
         "NotificationEndpoint": None,
         "NotificationEpUsername": None,
         "NotificationStatus": None,
@@ -25,7 +25,7 @@ ORDER_CREATED = {
         "EstimatedDate": None,
         "KeycloakUUID": "d466132e-2106-4654-8e2e-9bab70f75e2e",
         "WorkflowId": 914,
-        "WorkflowDisplayName": "Disp data_download",
+        "WorkflowDisplayName": "Disp data_harvest",
         "WorkflowVersion": "0.0.1",
     },
 }
